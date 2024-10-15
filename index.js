@@ -46,7 +46,7 @@ app.get('/api/employee/:id/images', (req, res) => {
       .filter(file => file.startsWith(employeeId)) // Only include files that start with the employee ID
       .map(file => ({
         name: file,
-        link: `http://192.168.0.134:3000/uploads/${file}`, // Link to access the image
+        link: `http://192.168.80.42:3000/uploads/${file}`, // Link to access the image
       }));
 
     if (images.length === 0) {
