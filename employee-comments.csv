@@ -1,0 +1,13 @@
+CustId,SelfKYC,SpouseKYC,RemarksSelf,RemarksSpouse
+
+82953,Real KYC,Fake KYC,sample,
+75565,Fake KYC,Fake KYC,Test: This is not Fake KYC,
+75565,Fake KYC,Fake KYC,"To allow all IP addresses within your LAN to access your server using a CORS (Cross-Origin Resource Sharing) policy, you'll need to configure your CORS policy to accept requests from all origins (or specifically from the IP address range in your LAN).
+
+Here’s how you can achieve this, depending on the server and framework you're using. Let’s explore a general solution, but the method may vary slightly based on your specific server or web framework.
+
+1. General Approach (Any Server)
+If you're configuring CORS manually, you'll need to ensure that you set the Access-Control-Allow-Origin header to either allow all origins (*) or specify your LAN's IP range.
+
+Allow All Origins (including all LAN IPs):
+Setting Access-Control-Allow-Origin to * allows any origin, including all IP addresses in your LAN, to make requests.",
