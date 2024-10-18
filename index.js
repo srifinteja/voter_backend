@@ -10,6 +10,7 @@ const app = express();
 
 
 const PORT = 3000;
+const currentTimestamp = new Date().toISOString(); 
 
 
 app.use(bodyParser.json());
@@ -108,6 +109,7 @@ app.post('/api/employee/:id/comment', (req, res) => {
 
   const { employeeId, selfKyc, spouseKyc, generalComment } = req.body;
 
+
   // Check if employeeId is defined
   if (!employeeId) {
       return res.status(400).json({ error: 'employeeId is required' });
@@ -119,12 +121,36 @@ app.post('/api/employee/:id/comment', (req, res) => {
   // Create a single record combining selfKyc and spouseKyc details
   const selfRemark = selfKyc.comment || generalComment; // Self remarks
   const spouseRemark = spouseKyc.comment || generalComment; // Spouse remarks
+  // Determine the KYC status for Self
+let selfKycStatus;
+if (selfKyc.isTrue) {
+    selfKycStatus = 'Good KYC';
+} else if (selfKyc.isFalse) {
+    selfKycStatus = 'Fake KYC';
+} else if (selfKyc.noHit) {
+    selfKycStatus = 'No HIT';
+} else {
+    selfKycStatus = ''; // Default empty value
+}
+// Determine the KYC status for Spouse
+let spouseKycStatus;
+if (spouseKyc.isTrue) {
+    spouseKycStatus = 'Good KYC';
+} else if (spouseKyc.isFalse) {
+    spouseKycStatus = 'Fake KYC';
+} else if (spouseKyc.noHit) {
+    spouseKycStatus = 'No HIT';
+} else {
+    spouseKycStatus = ''; // Default empty value
+}
   const record = {
+      
       employeeId: employeeId,
-      selfKyc: selfKyc.isTrue ? 'Good KYC' : 'Fake KYC', // KYC type for Self
-      spouseKyc: spouseKyc.isTrue ? 'Good KYC' : 'Fake KYC', // KYC type for Spouse
-      selfRemark: selfRemark,
-      spouseRemark: spouseRemark
+    selfKyc: selfKycStatus,  // Use the calculated KYC status for Self
+    spouseKyc: spouseKycStatus,  // Use the calculated KYC status for Spouse
+    selfRemark: selfRemark,
+    spouseRemark: spouseRemark,
+    timestamp: currentTimestamp,
   };
 
   // Check if the CSV file exists
@@ -140,7 +166,9 @@ app.post('/api/employee/:id/comment', (req, res) => {
               { id: 'spouseKyc', title: 'Spouse KYC' },
               { id: 'selfRemark', title: 'Self Remark' },
               { id: 'spouseRemark', title: 'Spouse Remark' },
+              { id: 'timestamp', title: 'Timestamp' },
           ],
+
           append: false, // Do not append when creating
       });
 
@@ -156,6 +184,7 @@ app.post('/api/employee/:id/comment', (req, res) => {
                       { id: 'spouseKyc', title: 'Spouse KYC' },
                       { id: 'selfRemark', title: 'Self Remark' },
                       { id: 'spouseRemark', title: 'Spouse Remark' },
+                      { id: 'timestamp', title: 'Timestamp' },
                   ],
                   append: true, // Now we can append data
               });
@@ -180,6 +209,7 @@ app.post('/api/employee/:id/comment', (req, res) => {
               { id: 'spouseKyc', title: 'Spouse KYC' },
               { id: 'selfRemark', title: 'Self Remark' },
               { id: 'spouseRemark', title: 'Spouse Remark' },
+              { id: 'timestamp', title: 'Timestamp' },
           ],
           append: true,
       });
