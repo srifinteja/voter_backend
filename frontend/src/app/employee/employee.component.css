@@ -1,0 +1,153 @@
+.container {
+  max-width: 1000px;
+  margin: auto;
+}
+
+.clickable-image {
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.clickable-image:hover {
+  transform: scale(1.05);
+}
+/* Full-screen overlay */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; /* Ensure it is above other elements */
+}
+
+/* Optional: Adjust spinner size */
+.spinner-border {
+  width: 3rem;
+  height: 3rem;
+}
+
+.image-wrapper {
+  margin: 15px; /* Adjust as needed */
+  padding: 20px; /* Optional: Add padding to the wrapper */
+  border: 1px solid #ddd; /* Optional: Add a border for better separation */
+  border-radius: 4px; /* Optional: Add rounded corners */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Optional: Add shadow for depth */
+}
+.image-wrapper img {
+  width: 100%; /* Set the width to 100% of the parent container */
+  height: auto; /* Maintain aspect ratio */
+  max-width: 200px; /* Set a maximum width for the image */
+  transition: transform 0.3s; /* Add a transition for smooth scaling */
+}
+
+
+.image-name {
+  text-align: center;
+  font-size: 14px;
+  color: #555;
+}
+/* .image-container {
+  display: flex;
+}
+.image-container img{
+  max-width: 100%;
+  height: auto;
+  margin: 0 10px;
+} */
+.image-box {
+  flex: 1;  /* Each box takes 50% of the width */
+  display: flex;
+  align-items: center;  /* Center the image vertically */
+  justify-content: center;  /* Center the image horizontally */
+}
+.submitted-text {
+  color: green;
+  font-weight: bold;
+}
+
+.form-check-inline {
+  margin-right: 10px;
+}
+.fixed-size-image {
+  width: 100%;  /* Ensures the image takes up full width of the container */
+  height: auto; /* Keeps aspect ratio intact */
+  object-fit: cover; /* Ensures the image covers the space evenly */
+}
+.uniform-image {
+  width: 100%;      /* Fill the width of the container */
+  height: auto;     /* Maintain aspect ratio */
+  max-height: 100%; /* Ensure the image doesn’t overflow vertically */
+  object-fit: cover; /* Ensure the image covers its container without distortion */
+}
+
+textarea.form-control {
+  min-height: 100px;
+}
+
+.zoomable-image {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.modal-footer {
+  position: relative; /* Ensure buttons stay in their original flow */
+  z-index: 1; /* Ensure footer buttons are above other content */
+}
+.img-fluid {
+  width: 50%; /* Ensure it takes the full width of its parent */
+  height: auto; /* Maintain aspect ratio */
+  max-width: 500px; /* Set a maximum width for better sizing */
+  transition: transform 0.3s ease; /* Smooth transition */
+}
+
+.img-fluid:hover {
+  transform: scale(1.1); /* Slightly scale up on hover */
+}
+
+.modal-dialog {
+  max-width: 80%;
+}
+
+.image-container {
+  display: flex;
+  width: 100%;
+  height: 100vh;  /* Full height of the viewport */
+}
+
+.checkbox-container {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+.checkbox-label {
+  display: block;
+  margin-right: 10px;
+}
+
+/* Custom styles for buttons */
+.btn {
+  font-size: 1.1rem; /* Slightly increase font size */
+  padding: 10px 20px; /* Add padding */
+  transition: background-color 0.3s, transform 0.2s; /* Smooth transition for hover effects */
+}
+
+.btn:hover {
+  background-color: #0056b3; /* Darker shade on hover */
+  transform: translateY(-2px); /* Slight lift effect on hover */
+}
+
+.btn:disabled {
+  background-color: #6c757d; /* Grey color for disabled state */
+  border-color: #6c757d; /* Match border color */
+  cursor: not-allowed; /* Show not-allowed cursor */
+}
+
+.btn:disabled:hover {
+  background-color: #6c757d; /* Prevent hover effect on disabled */
+}

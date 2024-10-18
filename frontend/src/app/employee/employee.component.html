@@ -1,0 +1,256 @@
+<div class="container mt-4">
+    <h2>Enter Customer ID:</h2>
+    <input [(ngModel)]="employeeId" type="text" class="form-control" placeholder="Customer ID" />
+    
+    <div class="container mt-3">
+      <label for="subfolderDropdown" class="form-label">Select Folder:</label>
+      <select class="form-select" id="subfolderDropdown" (change)="onFolderSelect($event)">
+        <option value="" disabled selected>Select a folder</option>
+        <option *ngFor="let folder of subfolders" [value]="folder">
+          {{ folder }}
+        </option>
+      </select>
+    </div>
+    
+    <button (click)="loadImages(selectedFolder)" class="btn btn-primary mt-2">Load Images</button>
+    <div *ngIf="images.length > 0">
+      <p>Customer ID: {{ employeeId }} 
+        <span *ngIf="isEmployeeSubmitted(employeeId)" class="submitted-text"> - Submitted</span>
+      </p>
+      
+  
+      <div class="row mt-2">
+        <!-- Group images by self and spouse -->
+        <div class="col-md-12">
+          
+       <!-- Section for Self (front and back) -->
+<!-- Section for Self (front and back) -->
+<h3 *ngIf="hasSelfImage" class="mt-4">Self (Front and Back)</h3>
+<div class="row" *ngIf="hasSelfImage">
+  <!-- Iterate over images, displaying two side by side -->
+  <div class="col-md-6" *ngFor="let image of images; let i = index">
+    <div *ngIf="imageSelections[i].imageName.includes('Self')">
+      <div class="image-wrapper">
+        <img 
+          [src]="image.link" 
+          alt="Self Image" 
+          class="img-fluid clickable-image uniform-image" 
+          (click)="openModal(image)" 
+        />
+        <p class="image-name">{{ imageSelections[i].imageName }}</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+          
+          <!-- Checkboxes and comment for Self group -->
+          <div class="form-group" *ngIf="hasSelfImage">
+            <p class="text-center">KYC for Self</p>
+            <div class="form-check-inline checkbox-container">
+              <label class="form-check-label checkbox-label">
+                <input 
+                  type="checkbox" 
+                  [(ngModel)]="selfKyc.isTrue" 
+                  class="form-check-input" 
+                  (change)="setSelfKyc(true)" 
+                /> Good KYC
+              </label>
+              <label class="form-check-label checkbox-label">
+                <input 
+                  type="checkbox" 
+                  [(ngModel)]="selfKyc.isFalse" 
+                  class="form-check-input" 
+                  (change)="setSelfKyc(false)"
+                /> Fake KYC
+              </label>
+              <label class="form-check-label checkbox-label">
+                <input 
+                  type="checkbox" 
+                  [(ngModel)]="selfKyc.noHit" 
+                  class="form-check-input" 
+                  (change)="setSelfNoHit(false)"
+                /> No HIT
+              </label>
+            </div>
+            <textarea 
+              [(ngModel)]="selfKyc.comment" 
+              class="form-control mt-2" 
+              placeholder="Add comment for Self KYC...">
+            </textarea>
+          </div>
+      
+          <!-- Section for Spouse (front and back) -->
+          <h3 *ngIf="hasSpouseImage" class="mt-4">Spouse (Front and Back)</h3>
+          <div class="row" *ngIf="hasSpouseImage">
+            <!-- <div class="col-md-6">
+              <div class="row"> -->
+                <div class="col-md-6" *ngFor="let image of images; let i = index">
+                  <div *ngIf="imageSelections[i].imageName.includes('Spouse')">
+                    <div class="image-wrapper">
+                      <img 
+                        [src]="image.link" 
+                        alt="Spouse Image" 
+                        class="img-fluid clickable-image" 
+                        (click)="openModal(image)" 
+                        
+                      />
+                      <p class="image-name">{{ imageSelections[i].imageName }}</p>
+                    </div>
+                  <!-- </div>
+                </div> -->
+              </div>
+            </div>
+          </div>
+      
+          <!-- Checkboxes and comment for Spouse group -->
+          <div class="form-group" *ngIf="hasSpouseImage">
+            <p class="text-center">KYC for Spouse</p>
+            <div class="form-check-inline checkbox-container">
+              <label class="form-check-label checkbox-label">
+                <input 
+                  type="checkbox" 
+                  [(ngModel)]="spouseKyc.isTrue" 
+                  class="form-check-input" 
+                  (change)="setSpouseKyc(true)" 
+                /> Good KYC
+              </label>
+              <label class="form-check-label checkbox-label">
+                <input 
+                  type="checkbox" 
+                  [(ngModel)]="spouseKyc.isFalse" 
+                  class="form-check-input" 
+                  (change)="setSpouseKyc(false)"
+                /> Fake KYC
+              </label>
+              <label class="form-check-label checkbox-label">
+                <input 
+                  type="checkbox" 
+                  [(ngModel)]="spouseKyc.noHit" 
+                  class="form-check-input" 
+                  (change)="setSpouseNoHit(false)"
+                /> No HIT
+              </label>
+            </div>
+            <textarea 
+              [(ngModel)]="spouseKyc.comment" 
+              class="form-control mt-2" 
+              placeholder="Add comment for Spouse KYC...">
+            </textarea>
+          </div>
+        </div>
+      </div>
+      
+      
+      
+      
+  
+      <!-- Modal for enlarged image with zoom -->
+      <!-- Modal for enlarged image with zoom and rotation -->
+<div class="modal fade" id="imageModal" tabindex="-1" role="dialog" aria-labelledby="imageModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="imageModalLabel">Image Viewer</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" (click)="currentImagee = null">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body text-center" style="overflow: hidden;">
+        <div class="image-container" style="overflow: auto; width: 100%; max-height: 70vh;">
+          <img 
+          [src]="currentImage?.link" 
+          class="zoomable-image" 
+          alt="Enlarged Image" 
+          [style.transform]="'scale(' + zoomLevel + ') translate(' + translateX + 'px, ' + translateY + 'px) rotate(' + rotation + 'deg)'" 
+          [style.transition]="'transform 0.2s ease-in-out'" 
+          [style.cursor]="'move'" 
+          style="max-width: 100%;"
+          (mousemove)="onMouseMove($event)" 
+          (wheel)="onWheel($event)"
+        />
+        
+        </div>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <!-- Zoom Controls -->
+        <div class="zoom-controls">
+          <button (click)="zoomOut()" class="btn btn-secondary">Zoom Out</button>
+          <button (click)="zoomIn()" class="btn btn-secondary">Zoom In</button>
+          <!-- <button (click)="rotateLeft()" class="btn btn-secondary">Rotate Left</button>
+          <button (click)="rotateRight()" class="btn btn-secondary">Rotate Right</button> -->
+        </div>
+      
+   
+      </div>
+      
+    </div>
+  </div>
+</div>
+
+<!-- Navigation buttons -->
+<div class="d-flex justify-content-between mt-3">
+  <button class="btn btn-primary btn-lg" 
+          (click)="previousEmployee(selectedFolder)" 
+          [disabled]="currentEmployeeIndex === 0"
+          [ngClass]="{'disabled': currentEmployeeIndex === 0}">
+    Previous Customer
+  </button>
+  <button class="btn btn-primary btn-lg" 
+          (click)="nextEmployee(selectedFolder)" 
+          [disabled]="currentEmployeeIndex === employeeIds.length - 1"
+          [ngClass]="{'disabled': currentEmployeeIndex === employeeIds.length - 1}">
+    Next Customer
+  </button>
+</div>
+
+
+      
+  
+      <!-- Comment section -->
+      <!-- Submit button -->
+<div class="mt-4 text-center">
+  <button (click)="submitComment()" class="btn btn-success mt-2" 
+          [disabled]="isEmployeeSubmitted(employeeId) || loading">
+    Submit
+  </button>
+</div>
+
+<!-- Full-screen loading overlay -->
+<div *ngIf="loading" class="loading-overlay">
+  <div class="spinner-border text-light" role="status">
+    <span class="sr-only">Loading...</span>
+  </div>
+</div>
+
+      
+    </div>
+  </div>
+  <!-- employee.component.html -->
+
+<div *ngIf="currentImagee" class="modal" tabindex="-1" role="dialog" [ngStyle]="{ display: modalOpen ? 'block' : 'none' }">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Image Zoom</h5>
+                <button type="button" class="close" (click)="closeModal()">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body text-center" (mousedown)="startDrag($event)" (mouseup)="stopDrag()" (mousemove)="drag($event)" (mouseleave)="stopDrag()">
+                <div class="image-container" [ngStyle]="{ transform: 'scale(' + zoomLevel + ') rotate(' + rotation + 'deg)', left: offsetX + 'px', top: offsetY + 'px' }">
+                    <img [src]="currentImagee.link" class="img-fluid" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" (click)="zoomOut()">Zoom Out</button>
+                <button type="button" class="btn btn-secondary" (click)="zoomIn()">Zoom In</button>
+                <button (click)="rotateLeft()" class="btn btn-secondary">Rotate Left</button>
+                <button (click)="rotateRight()" class="btn btn-secondary">Rotate Right</button>
+                <button type="button" class="btn btn-primary" (click)="closeModal()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
