@@ -41,6 +41,7 @@ export class EmployeeComponent implements OnInit{
   modalOpen: boolean = false; // State to control modal visibility
   imageSelections: ImageSelection[] = []; 
   dragging: boolean = false; // Track dragging state
+  // isSubmitted: boolean = false;
   startX: number = 0; // Starting X position
   startY: number = 0; // Starting Y position
   offsetX: number = 0; // X offset for dragging
@@ -80,10 +81,11 @@ export class EmployeeComponent implements OnInit{
     this.imageSelections = [];
     // this.loadEmployeeIds();
     this.fetchSubfolders();
-    this.loadCsvData().subscribe((ids) => {
-      this.submittedEmployeeIds = ids;
-      // console.log('Submitted Employee IDs:', this.submittedEmployeeIds);
-    });
+    
+    // this.loadCsvData().subscribe((ids) => {
+    //   this.submittedEmployeeIds = ids;
+    //   // console.log('Submitted Employee IDs:', this.submittedEmployeeIds);
+    // });
   
   }
   onMouseMove(event: MouseEvent) {
@@ -118,19 +120,23 @@ export class EmployeeComponent implements OnInit{
     this.offsetY = 0; // Reset offsets
     this.modalOpen = true; // Open modal
 }
-loadCsvData(): Observable<string[]> {
-  return this.http.get(`${API_BASE_URL}/api/csv`, { responseType: 'text' }).pipe(
-    map((data) => {
-      // console.log('Raw CSV Data:', data); // Log the raw CSV data
-      const lines = data.split('\n');
-      const submittedEmployeeIds = lines.slice(1) // Skip the first line (header)
-        .map((line) => line.split(',')[0].trim()) // Get the first column (CustId)
-        .filter((id) => id); // Remove empty entries
+// loadCsvData(): Observable<string[]> {
+//   return this.http.get(`${API_BASE_URL}/api/csv`, { responseType: 'text' }).pipe(
+//     map((data) => {
+//       // console.log('Raw CSV Data:', data); // Log the raw CSV data
+//       const lines = data.split('\n');
+//       const submittedEmployeeIds = lines.slice(1) // Skip the first line (header)
+//         .map((line) => line.split(',')[0].trim()) // Get the first column (CustId)
+//         .filter((id) => id); // Remove empty entries
       
-      // console.log('Submitted Employee IDs:', submittedEmployeeIds); // Log the final IDs
-      return submittedEmployeeIds; // Return the array of IDs
-    })
-  );
+//       // console.log('Submitted Employee IDs:', submittedEmployeeIds); // Log the final IDs
+//       return submittedEmployeeIds; // Return the array of IDs
+//     })
+//   );
+// }
+checkCustomerIdExists(employeeId: string): Observable<boolean> {
+  console.log(employeeId);
+  return this.http.get<boolean>(`${API_BASE_URL}/api/employee/${employeeId}/exists`);
 }
 fetchSubfolders() {
   this.http.get<string[]>(`${API_BASE_URL}/api/subfolders`)
@@ -152,7 +158,7 @@ onFolderSelect(event: any) {
   // You can now use this.selectedFolder in other parts of your app
 }
 isEmployeeSubmitted(employeeId: string): boolean {
-  return this.submittedEmployeeIds.includes(employeeId);
+  return this.isSubmitted; // Check if already submitted
 }
 closeModal() {
     this.modalOpen = false; // Close modal
@@ -213,16 +219,20 @@ drag(event: MouseEvent) {
 }
 
 // Method to load employee IDs
-loadEmployeeIds(folder:string) {
-  // console.log(selectedFolder);
+loadEmployeeIds(folder: string) {
   this.http.get<string[]>(`${API_BASE_URL}/api/employee/ids?folder=${folder}`).subscribe(
     (data) => {
       this.employeeIds = data;
       console.log(this.employeeIds);
+
       if (this.employeeIds.length > 0) {
         this.currentEmployeeIndex = 0;
         this.employeeId = this.employeeIds[this.currentEmployeeIndex]; // Set first employee ID
+        this.checkEmployeeSubmission();
         this.loadImages(folder); // Fetch images for the first employee
+        
+        // Call the function to download the employee IDs as a CSV file
+        this.downloadEmployeeIdsAsCsv(this.employeeIds);
       }
     },
     (error) => {
@@ -232,9 +242,33 @@ loadEmployeeIds(folder:string) {
   );
 }
 
+downloadEmployeeIdsAsCsv(employeeIds: string[]) {
+  // Convert the employee IDs array into a CSV format (each ID on a new line)
+  const csvContent = employeeIds.join('\n');
+
+  // Create a Blob from the CSV content
+  const blob = new Blob([csvContent], { type: 'text/csv' });
+
+  // Create a URL for the Blob
+  const url = window.URL.createObjectURL(blob);
+
+  // Create a temporary link element to trigger the download
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'employee_ids.csv'; // Name of the file to be downloaded
+
+  // Append the link to the document, trigger the click event, and remove the link
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  // Revoke the URL after the download is complete to release memory
+  window.URL.revokeObjectURL(url);
+}
 
 loadImages(folder:string) {
   // console.log(selectedFolder);
+  this.checkEmployeeSubmission();
   if (this.employeeId) {
     this.http.get<Image[]>(`${API_BASE_URL}/api/employee/${this.employeeId}/images?folder=${folder}`).subscribe(
 
@@ -332,12 +366,17 @@ setFalse(selectedImage:ImageSelection) {
 }
 
 submitComment() {
+  if (this.isSubmitted) {
+    return; // Prevent submission if already submitted
+  }
   this.loading = true;
 // Define the current date and time
 const currentTimestamp = new Date().toISOString();
+console.log(currentTimestamp);
   // Define the payload object
   const payload = {
     employeeId: this.employeeId,
+    branch:this.selectedFolder,
     selfKyc: {
       isTrue: this.selfKyc.isTrue,
       isFalse: this.selfKyc.isFalse,
@@ -368,20 +407,62 @@ const currentTimestamp = new Date().toISOString();
 
       this.loading = false; 
       
-      // Optionally reset form or show a success message
-      // this.resetForm();
-    }, error => {
-      console.error('Error submitting data:', error);
-      this.loading = false; 
-      
-      // Show error alert
-      alert('Failed to submit data. Please try again.');
-    });
-}
- 
+          // After successfully submitting, load CSV data to check if the employee entry is present
+          this.checkCustomerIdExists(this.employeeId).subscribe((exists: boolean) => {
+            // this.submittedEmployeeIds = ids; // Assuming you still want to keep track of submitted IDs
+          
+            // Check if the current employee is in the MySQL table and update the button state
+            if (exists) {
+              console.log('Employee entry found in the database. Button will be disabled.');
+            } else {
+              console.log('Employee entry not found. Button is still active.');
+            }
+          });
+          this.checkEmployeeSubmission();
+    
+        }, error => {
+          console.error('Error submitting data:', error);
+          this.loading = false; 
+          alert('Failed to submit data. Please try again.');
+        });
+    }
+    downloadCsv() {
+      const url = `${API_BASE_URL}/api/employee/download`; // Adjust to your API URL
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'customer_kyc_details.csv';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    
 
   get currentImage() {
     return this.images[this.currentIndex];
   }
+  checkEmployeeSubmission() {
+    this.loading = true; // Start loading
+  
+    if (!this.employeeId) {
+      console.error('Employee ID is not defined');
+      this.loading = false; // Stop loading if ID is not defined
+      return;
+    }
+  
+    this.checkCustomerIdExists(this.employeeId).subscribe(
+      (exists: boolean) => {
+        this.isSubmitted = exists; // Set the submitted status based on the response
+        console.log('isSubmitted:', this.isSubmitted);
+        this.loading = false; // Stop loading
+      },
+      (error) => {
+        console.error('Error checking employee ID:', error);
+        this.loading = false; // Stop loading on error
+      }
+      
+    );
+    
+  }
+  
 
 }

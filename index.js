@@ -2,8 +2,8 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const bodyParser = require('body-parser');
-// const createCsvWriter = require('csv-writer').createObjectCsvWriter;
-const { createObjectCsvWriter } = require('csv-writer'); // Adjusted import statement
+const { Parser } = require('json2csv');
+
 
 const cors = require('cors'); // Import the cors module
 const app = express();
@@ -11,7 +11,17 @@ const app = express();
 
 const PORT = 3000;
 const currentTimestamp = new Date().toISOString(); 
-
+const mysql = require('mysql2/promise');
+const pool = mysql.createPool({
+  user: 'srifin_admin',
+  host: '192.168.80.38',
+  database: 'srifin',
+  password: '7730061615',
+  port: 3306,
+  waitForConnections: true,
+  connectionLimit: 10, // Limit the number of concurrent connections
+  queueLimit: 0 // Unlimited queue size for connections
+});
 
 app.use(bodyParser.json());
 // Serve static files from the uploads directory
@@ -100,132 +110,82 @@ app.get('/api/employee/ids', (req, res) => {
   });
 });
 
-app.get('/api/csv', (req, res) => {
-  res.sendFile(path.join("G:\\My Drive\\Risk\\Voter_Images\\Customer-QC-details.csv"));
+// API endpoint to fetch all rows and return as CSV
+app.get('/api/employee/download', async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM customer_kyc_details');
+    
+    // Convert JSON to CSV
+    const json2csvParser = new Parser();
+    const csv = json2csvParser.parse(rows);
+    
+    // Set headers to prompt download
+    res.header('Content-Type', 'text/csv');
+    res.attachment('customer_kyc_details.csv');
+    res.send(csv);
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    res.status(500).json({ error: 'Error fetching data' });
+  }
 });
-// Endpoint to save comments to a CSV file
-app.post('/api/employee/:id/comment', (req, res) => {
+app.get('/api/employee/:id/exists', async (req, res) => {
+  const employeeId = req.params.id;
+// console.log(employeeId);
+  try {
+    const [rows] = await pool.query('SELECT COUNT(*) AS count FROM customer_kyc_details WHERE custmer_id = ?', [employeeId]);
+    const exists = rows[0].count > 0; // Check if count is greater than 0
+    // console.log(exists);
+    res.json(exists);
+  } catch (error) {
+    console.error('Error checking customer ID:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/api/employee/:id/comment', async (req, res) => {
   console.log('Request body:', req.body);
 
-  const { employeeId, selfKyc, spouseKyc, generalComment } = req.body;
-
+  const { employeeId, branch, selfKyc, spouseKyc, generalComment } = req.body;
 
   // Check if employeeId is defined
   if (!employeeId) {
       return res.status(400).json({ error: 'employeeId is required' });
   }
-// "G:\My Drive\Risk\Voter_Images\employee-comments.csv"
-  const csvFilePath = path.join("G:\\My Drive\\Risk\\Voter_Images\\Customer-QC-details.csv");
-
 
   // Create a single record combining selfKyc and spouseKyc details
   const selfRemark = selfKyc.comment || generalComment; // Self remarks
   const spouseRemark = spouseKyc.comment || generalComment; // Spouse remarks
+
   // Determine the KYC status for Self
-let selfKycStatus;
-if (selfKyc.isTrue) {
-    selfKycStatus = 'Good KYC';
-} else if (selfKyc.isFalse) {
-    selfKycStatus = 'Fake KYC';
-} else if (selfKyc.noHit) {
-    selfKycStatus = 'No HIT';
-} else {
-    selfKycStatus = ''; // Default empty value
-}
-// Determine the KYC status for Spouse
-let spouseKycStatus;
-if (spouseKyc.isTrue) {
-    spouseKycStatus = 'Good KYC';
-} else if (spouseKyc.isFalse) {
-    spouseKycStatus = 'Fake KYC';
-} else if (spouseKyc.noHit) {
-    spouseKycStatus = 'No HIT';
-} else {
-    spouseKycStatus = ''; // Default empty value
-}
-  const record = {
-      
-      employeeId: employeeId,
-    selfKyc: selfKycStatus,  // Use the calculated KYC status for Self
-    spouseKyc: spouseKycStatus,  // Use the calculated KYC status for Spouse
-    selfRemark: selfRemark,
-    spouseRemark: spouseRemark,
-    timestamp: currentTimestamp,
-  };
+  let selfKycStatus = selfKyc.isTrue ? 'Good KYC' : selfKyc.isFalse ? 'Fake KYC' : selfKyc.noHit ? 'No HIT' : '';
+  
+  // Determine the KYC status for Spouse
+  let spouseKycStatus = spouseKyc.isTrue ? 'Good KYC' : spouseKyc.isFalse ? 'Fake KYC' : spouseKyc.noHit ? 'No HIT' : '';
 
-  // Check if the CSV file exists
-  const fileExists = fs.existsSync(csvFilePath);
+  // Prepare the SQL insert statement
+  const query = `
+      INSERT INTO customer_kyc_details (custmer_id, selfkyc, spousekyc, remarks_self, remarks_spouse, branch)
+        VALUES (?, ?, ?, ?, ?, ?)
+  `;
 
-  // Write headers if the file does not exist
-  if (!fileExists) {
-      const headerWriter = createObjectCsvWriter({
-          path: csvFilePath,
-          header: [
-              { id: 'employeeId', title: 'Employee ID' },
-              { id: 'selfKyc', title: 'Self KYC' },
-              { id: 'spouseKyc', title: 'Spouse KYC' },
-              { id: 'selfRemark', title: 'Self Remark' },
-              { id: 'spouseRemark', title: 'Spouse Remark' },
-              { id: 'timestamp', title: 'Timestamp' },
-          ],
+  const values = [
+      employeeId,
+      selfKycStatus,
+      spouseKycStatus,
+      selfRemark,
+      spouseRemark,
+      branch,
+  ];
 
-          append: false, // Do not append when creating
-      });
-
-      // Write the headers to the CSV file
-      headerWriter.writeRecords([]) // Write an empty array to create the headers
-          .then(() => {
-              // After writing headers, now append the record
-              const csvWriter = createObjectCsvWriter({
-                  path: csvFilePath,
-                  header: [
-                      { id: 'employeeId', title: 'Employee ID' },
-                      { id: 'selfKyc', title: 'Self KYC' },
-                      { id: 'spouseKyc', title: 'Spouse KYC' },
-                      { id: 'selfRemark', title: 'Self Remark' },
-                      { id: 'spouseRemark', title: 'Spouse Remark' },
-                      { id: 'timestamp', title: 'Timestamp' },
-                  ],
-                  append: true, // Now we can append data
-              });
-
-              // Write the record
-              return csvWriter.writeRecords([record]);
-          })
-          .then(() => {
-              res.json({ message: 'Comment and selections saved', employeeId, selfRemark, spouseRemark });
-          })
-          .catch(error => {
-              console.error('Error writing to CSV:', error);
-              res.status(500).json({ error: 'Error saving comment and selections' });
-          });
-  } else {
-      // Append the record if the file already exists
-      const csvWriter = createObjectCsvWriter({
-          path: csvFilePath,
-          header: [
-              { id: 'employeeId', title: 'Employee ID' },
-              { id: 'selfKyc', title: 'Self KYC' },
-              { id: 'spouseKyc', title: 'Spouse KYC' },
-              { id: 'selfRemark', title: 'Self Remark' },
-              { id: 'spouseRemark', title: 'Spouse Remark' },
-              { id: 'timestamp', title: 'Timestamp' },
-          ],
-          append: true,
-      });
-
-      // Write the record to CSV
-      csvWriter.writeRecords([record])
-          .then(() => {
-              res.json({ message: 'Comment and selections saved', employeeId, selfRemark, spouseRemark });
-          })
-          .catch(error => {
-              console.error('Error writing to CSV:', error);
-              res.status(500).json({ error: 'Error saving comment and selections' });
-          });
+  try {
+      // Execute the SQL query
+      await pool.query(query, values);
+      res.json({ message: 'Comment and selections saved', employeeId, selfRemark, spouseRemark });
+  } catch (error) {
+      console.error('Error saving comment and selections:', error);
+      res.status(500).json({ error: 'Error saving comment and selections' });
   }
 });
-
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);

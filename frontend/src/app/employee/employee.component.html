@@ -214,6 +214,11 @@
   <button (click)="submitComment()" class="btn btn-success mt-2" 
           [disabled]="isEmployeeSubmitted(employeeId) || loading">
     Submit
+  </button>  
+</div>
+<div class="mt-4 text-center">
+  <button (click)="downloadCsv()" class="btn btn-primary mt-2">
+    Download CSV
   </button>
 </div>
 
